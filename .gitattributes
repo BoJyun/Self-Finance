@@ -1,0 +1,10 @@
+# repo 裡一律存 LF，簽出到 Windows 時由 git 轉成 CRLF
+* text=auto eol=lf
+
+# 批次檔在 Windows 上用 CRLF 比較保險
+*.bat text eol=crlf
+
+# 二進位檔不要動
+*.xlsx binary
+*.png  binary
+*.jpg  binary

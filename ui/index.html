@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="utf-8">
+<title>持股管理</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">持股管理</div>
+  <div class="topbar-right">
+    <div class="meta">
+      <div id="updated" class="meta-line">尚未更新</div>
+      <div id="fxline" class="meta-line dim">USD/TWD —</div>
+    </div>
+    <button id="btn-refresh" class="btn primary">更新報價</button>
+    <button id="btn-edit" class="btn">編輯持股</button>
+    <button id="btn-settings" class="btn" title="設定">設定</button>
+    <button id="btn-export" class="btn" title="把目前的庫存表匯出成 Excel">匯出</button>
+    <button id="btn-folder" class="btn ghost" title="打開資料夾">📁</button>
+  </div>
+</header>
+
+<main id="view-main">
+  <div id="banner" class="banner hidden"></div>
+
+  <section class="stats">
+    <div class="stat">
+      <div class="stat-label">今日損益</div>
+      <div id="s-today" class="stat-value">—</div>
+      <div id="s-today-pct" class="stat-sub">—</div>
+    </div>
+    <div class="divider"></div>
+    <div class="stat">
+      <div class="stat-label">累積損益</div>
+      <div id="s-total" class="stat-value">—</div>
+      <div id="s-total-pct" class="stat-sub">—</div>
+    </div>
+    <div class="divider"></div>
+    <div class="stat">
+      <div class="stat-label">股票市值</div>
+      <div id="s-value" class="stat-value neutral">—</div>
+      <div id="s-cost" class="stat-sub dim">成本 —</div>
+    </div>
+    <div class="divider"></div>
+    <div class="stat" id="split-card">
+      <div class="stat-label">台股 / 美股</div>
+      <div id="s-split" class="stat-value neutral small">—</div>
+      <div id="s-split-sub" class="stat-sub dim">—</div>
+    </div>
+  </section>
+
+  <table id="table">
+    <thead>
+      <tr>
+        <th class="sortable" data-key="代號">庫存股</th>
+        <th class="sortable num" data-key="現價">股價<br><span class="sub">漲跌幅</span></th>
+        <th class="sortable num" data-key="今日損益">今日損益</th>
+        <th class="sortable num" data-key="總損益">總損益<br><span class="sub">報酬率</span></th>
+        <th class="sortable num" data-key="股數">股數<br><span class="sub">均價</span></th>
+        <th class="sortable num" data-key="市值">市值<br><span class="sub">佔比</span></th>
+      </tr>
+    </thead>
+    <tbody id="tbody">
+      <tr class="empty"><td colspan="6">按右上角「更新報價」開始</td></tr>
+    </tbody>
+  </table>
+
+  <div id="footnote" class="footnote hidden"></div>
+</main>
+
+<!-- ════════ 編輯模式 ════════ -->
+<main id="view-edit" class="hidden">
+  <div class="edit-head">
+    <div>
+      <div class="edit-title">編輯持股</div>
+      <div id="edit-hint" class="edit-hint">
+        直接在格子裡打字。輸入代號後會自動帶出名稱與現價，方便你確認沒打錯。
+      </div>
+    </div>
+    <div class="edit-actions">
+      <button id="btn-cancel" class="btn">取消</button>
+      <button id="btn-save" class="btn primary">儲存</button>
+    </div>
+  </div>
+
+  <div id="edit-error" class="banner error hidden"></div>
+
+  <table id="edit-table">
+    <thead>
+      <tr>
+        <th style="width:120px">代號</th>
+        <th>名稱<span class="sub"> / 現價</span></th>
+        <th style="width:92px">市場</th>
+        <th class="num" style="width:130px">股數</th>
+        <th class="num" style="width:120px">均價</th>
+        <th>備註</th>
+        <th style="width:44px"></th>
+      </tr>
+    </thead>
+    <tbody id="edit-tbody"></tbody>
+  </table>
+
+  <button id="btn-addrow" class="addrow">＋ 新增一列</button>
+</main>
+
+<!-- ════════ 設定 ════════ -->
+<div id="settings-overlay" class="overlay hidden">
+  <div class="dialog">
+    <div class="dialog-head">
+      <div class="dialog-title">設定</div>
+      <button id="btn-close-settings" class="btn ghost">✕</button>
+    </div>
+
+    <div class="field">
+      <div class="field-label">美元匯率</div>
+      <label class="radio">
+        <input type="radio" name="fxmode" value="auto" checked>
+        <span>自動抓取</span>
+        <span id="fx-current" class="field-note">—</span>
+      </label>
+      <label class="radio">
+        <input type="radio" name="fxmode" value="manual">
+        <span>手動指定</span>
+        <input id="fx-manual" class="input-inline" type="text" placeholder="32.50" disabled>
+      </label>
+      <div class="field-note indent">
+        填你實際的換匯價，美股損益才會反映真實的台幣賺賠。
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">漲跌顏色</div>
+      <label class="radio">
+        <input type="radio" name="scheme" value="紅漲綠跌" checked>
+        <span>紅漲綠跌</span><span class="field-note">台股習慣</span>
+      </label>
+      <label class="radio">
+        <input type="radio" name="scheme" value="綠漲紅跌">
+        <span>綠漲紅跌</span><span class="field-note">美股習慣</span>
+      </label>
+    </div>
+
+    <div class="field">
+      <div class="field-label">自動更新</div>
+      <label class="radio">
+        <input id="auto-on" type="checkbox">
+        <span>開啟</span>
+      </label>
+      <div class="field-note indent">
+        盤中每 60 秒更新一次，非盤中每 10 分鐘。<br>
+        遇到休市（例如颱風假）會自動放慢，不會空打 API。
+      </div>
+      <div id="market-state" class="field-note indent"></div>
+    </div>
+
+    <div class="dialog-foot">設定改了立刻生效，存在 data\設定.json</div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

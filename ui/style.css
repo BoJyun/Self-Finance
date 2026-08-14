@@ -1,0 +1,310 @@
+/* 深色主題，配色參考台股看盤軟體：紅漲綠跌。
+   版面採「固定頁首 + 可捲動內容」的 flex 直排，
+   這樣不管顯示器縮放幾 %、視窗多小，都不會有內容被裁掉看不到。 */
+:root {
+  --bg:        #12151C;
+  --panel:     #1A1F2A;
+  --panel-2:   #202634;
+  --line:      #2A3240;
+  --text:      #E6E9EF;
+  --text-dim:  #8A93A6;
+  --text-faint:#5C6577;
+
+  --up:        #FF4D5E;   /* 漲 */
+  --down:      #29C46B;   /* 跌 */
+  --flat:      #8A93A6;
+  --accent:    #E8B54A;
+  --warn-bg:   #3A2418;
+  --warn-line: #7A4A22;
+  --warn-text: #F0C08A;
+
+  --pad: 16px;
+}
+/* 設定檔選「綠漲紅跌」時，body 會被加上這個 class */
+body.scheme-us { --up: #29C46B; --down: #FF4D5E; }
+
+* { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;                 /* 捲動交給 main，頁首固定不動 */
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Microsoft JhengHei UI", "Microsoft JhengHei", "Segoe UI", system-ui, sans-serif;
+  font-size: 13.5px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.hidden { display: none !important; }
+.dim  { color: var(--text-dim); }
+
+/* ── 頂列 ────────────────────────────────────────────── */
+.topbar {
+  flex: none;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px;
+  padding: 10px var(--pad);
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.brand { font-size: 15px; font-weight: 700; letter-spacing: .05em; flex: none; }
+.topbar-right {
+  display: flex; align-items: center; gap: 7px;
+  min-width: 0; flex-wrap: wrap; justify-content: flex-end;
+}
+.meta {
+  text-align: right; margin-right: 4px; line-height: 1.45;
+  min-width: 0; overflow: hidden;
+}
+.meta-line {
+  font-size: 11px; color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#fxline { color: var(--accent); }
+
+.btn {
+  flex: none;
+  background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+  font-family: inherit; white-space: nowrap;
+  transition: background .12s, border-color .12s;
+}
+.btn:hover  { background: #29313F; border-color: #3A4454; }
+.btn:active { transform: translateY(1px); }
+.btn.primary { background: #2B4A7A; border-color: #38609B; font-weight: 600; }
+.btn.primary:hover { background: #345891; }
+.btn.primary:disabled { background: #232A36; border-color: var(--line); color: var(--text-faint); cursor: default; }
+.btn.ghost { padding: 6px 9px; }
+
+/* ── 可捲動的內容區 ───────────────────────────────────── */
+main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;                   /* 內容太寬或太長時在這裡捲動，不會被裁掉 */
+  padding: 0 var(--pad) 20px;
+}
+
+/* ── 提示橫幅 ─────────────────────────────────────────── */
+.banner {
+  margin-top: var(--pad);
+  padding: 11px 13px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-radius: 8px;
+  color: var(--warn-text);
+  font-size: 12.5px; line-height: 1.65;
+  white-space: pre-wrap;
+  user-select: text;
+}
+.banner.error { background: #3A1A1E; border-color: #7A2A32; color: #F0A0A8; }
+
+/* ── 統計卡 ───────────────────────────────────────────── */
+.stats {
+  display: flex; align-items: stretch;
+  margin: var(--pad) 0;
+  padding: 13px 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  min-width: 640px;                 /* 再窄就一起橫向捲動，不硬擠 */
+}
+.stat { flex: 1 1 0; padding: 0 14px; min-width: 0; }
+.divider { width: 1px; background: var(--line); flex: none; }
+.stat-label { font-size: 11.5px; color: var(--text-dim); margin-bottom: 6px; }
+.stat-value {
+  font-size: clamp(19px, 2.2vw, 26px);
+  font-weight: 700; line-height: 1.15;
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.stat-value.small { font-size: clamp(14px, 1.5vw, 18px); }
+.stat-sub {
+  font-size: 12px; margin-top: 3px; font-variant-numeric: tabular-nums;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.neutral { color: var(--text); }
+.up   { color: var(--up); }
+.down { color: var(--down); }
+.flat { color: var(--flat); }
+
+/* ── 表格 ─────────────────────────────────────────────── */
+table {
+  width: 100%;
+  min-width: 760px;                 /* 低於此寬度就橫向捲動，欄位不會擠爛或被裁 */
+  border-collapse: collapse;
+}
+
+thead th {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  font-size: 11.5px; font-weight: 600;
+  text-align: left; padding: 8px 10px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  line-height: 1.35; white-space: nowrap;
+}
+thead th.num { text-align: right; }
+thead th .sub { font-size: 10.5px; color: var(--text-faint); font-weight: 400; }
+th.sortable { cursor: pointer; }
+th.sortable:hover { color: var(--text); }
+th.sort-asc::after  { content: " ▲"; color: var(--accent); font-size: 9px; }
+th.sort-desc::after { content: " ▼"; color: var(--accent); font-size: 9px; }
+
+tbody td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+  vertical-align: middle;
+}
+tbody tr:hover { background: #1B212C; }
+tbody td.num { text-align: right; white-space: nowrap; }
+tbody tr.empty td { text-align: center; color: var(--text-faint); padding: 36px 0; }
+
+.code-cell { display: flex; align-items: center; gap: 8px; }
+.tag {
+  font-size: 9.5px; padding: 2px 4px; border-radius: 3px;
+  border: 1px solid var(--line); color: var(--text-dim);
+  background: #171C25; white-space: nowrap; flex-shrink: 0;
+}
+.tag.us { color: #7FB3E8; border-color: #2C4A6B; background: #17222E; }
+.name  { font-size: 13.5px; font-weight: 600; }
+.code  { font-size: 11px; color: var(--text-faint); margin-top: 1px; }
+.big   { font-size: 14px; font-weight: 600; }
+.sub-line { font-size: 11.5px; margin-top: 2px; }
+.orig  { font-size: 10.5px; color: var(--text-faint); margin-top: 2px; }
+
+.badge {
+  display: inline-block; font-size: 9.5px; padding: 1px 4px; border-radius: 3px;
+  background: var(--warn-bg); color: var(--warn-text);
+  border: 1px solid var(--warn-line); margin-left: 5px;
+}
+
+.footnote {
+  margin-top: 12px; padding: 11px 13px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  font-size: 11.5px; color: var(--text-dim); line-height: 1.7;
+  white-space: pre-wrap; user-select: text;
+}
+
+/* ── Toast ───────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+  background: var(--panel-2); border: 1px solid var(--line);
+  padding: 9px 16px; border-radius: 8px; font-size: 12.5px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.55); z-index: 50;
+  max-width: 76%; white-space: pre-wrap; user-select: text;
+}
+
+/* ── 編輯模式 ─────────────────────────────────────────── */
+.edit-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; padding: var(--pad) 0 12px;
+}
+.edit-title { font-size: 16px; font-weight: 700; }
+.edit-hint { font-size: 11.5px; color: var(--text-dim); margin-top: 4px; line-height: 1.6; }
+.edit-actions { display: flex; gap: 8px; flex: none; }
+
+#edit-table { min-width: 880px; }
+#edit-table tbody td { padding: 4px 6px; }
+#edit-table thead th { padding: 8px 6px; }
+
+.cell-input {
+  width: 100%; background: #171C25; color: var(--text);
+  border: 1px solid var(--line); border-radius: 5px;
+  padding: 7px 9px; font-size: 13px; font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.cell-input:focus { outline: none; border-color: #4A7ABF; background: #1B222E; }
+.cell-input.num { text-align: right; }
+.cell-input.bad { border-color: #B0424E; background: #2A1A1D; }
+.cell-input:disabled { color: var(--text-faint); background: #14181F; }
+
+select.cell-input { padding: 7px 6px; }
+
+.lookup {
+  font-size: 12px; color: var(--text-dim); padding: 0 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.lookup .px { color: var(--accent); font-variant-numeric: tabular-nums; }
+.lookup.bad { color: #E08A94; }
+
+.rowdel {
+  background: none; border: 1px solid transparent; color: var(--text-faint);
+  cursor: pointer; border-radius: 5px; padding: 5px 8px; font-size: 14px;
+}
+.rowdel:hover { color: #FF7A88; border-color: #5A2A32; background: #2A1A1D; }
+
+.addrow {
+  margin-top: 10px; width: 100%;
+  background: var(--panel); color: var(--text-dim);
+  border: 1px dashed var(--line); border-radius: 8px;
+  padding: 11px; font-size: 13px; font-family: inherit; cursor: pointer;
+}
+.addrow:hover { color: var(--text); border-color: #3E4A5C; background: var(--panel-2); }
+
+.cell-msg { font-size: 11px; color: #E08A94; margin-top: 3px; padding-left: 2px; }
+
+/* ── 設定對話框 ───────────────────────────────────────── */
+.overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(6, 8, 12, .68);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.dialog {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; width: 470px; max-width: 100%;
+  max-height: 100%; overflow: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .6);
+}
+.dialog-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--line);
+}
+.dialog-title { font-size: 15px; font-weight: 700; }
+.dialog-foot {
+  padding: 12px 18px; border-top: 1px solid var(--line);
+  font-size: 11px; color: var(--text-faint);
+}
+
+.field { padding: 16px 18px; border-bottom: 1px solid var(--line); }
+.field:last-of-type { border-bottom: none; }
+.field-label { font-size: 12.5px; font-weight: 600; color: var(--text-dim); margin-bottom: 10px; }
+.field-note { font-size: 11.5px; color: var(--text-faint); line-height: 1.6; }
+.field-note.indent { margin-top: 8px; padding-left: 24px; }
+
+.radio {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; cursor: pointer; font-size: 13px;
+}
+.radio input { accent-color: #4A7ABF; width: 15px; height: 15px; cursor: pointer; }
+
+.input-inline {
+  width: 96px; background: #171C25; color: var(--text);
+  border: 1px solid var(--line); border-radius: 5px;
+  padding: 5px 8px; font-size: 13px; font-family: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.input-inline:focus { outline: none; border-color: #4A7ABF; }
+.input-inline:disabled { color: var(--text-faint); }
+
+/* 窄視窗時縮小留白；頂列的資訊與按鈕會自動換到第二行，不會被裁掉 */
+@media (max-width: 1000px) {
+  :root { --pad: 11px; }
+  .topbar { flex-wrap: wrap; }
+}
+
+/* 捲軸 */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: #333C4C; border-radius: 6px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: #414C60; }
+::-webkit-scrollbar-corner { background: var(--bg); }
