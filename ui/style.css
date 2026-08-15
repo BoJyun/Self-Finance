@@ -137,8 +137,18 @@ main {
 /* ── 表格 ─────────────────────────────────────────────── */
 table {
   width: 100%;
-  min-width: 760px;                 /* 低於此寬度就橫向捲動，欄位不會擠爛或被裁 */
+  min-width: 880px;                 /* 低於此寬度就橫向捲動，欄位不會擠爛或被裁 */
   border-collapse: collapse;
+}
+
+/* 備註是自由文字，長度不可控，所以固定寬度、超出用刪節號，
+   完整內容放 title，滑鼠移上去看得到 */
+.note-col { width: 190px; max-width: 190px; }
+tbody td.note-col { color: var(--text-dim); }
+.note {
+  font-size: 12px; line-height: 1.5;
+  max-width: 190px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 thead th {

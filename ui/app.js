@@ -110,7 +110,7 @@ function renderRows() {
   });
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr class="empty"><td colspan="6">沒有持股資料，按「編輯持股」新增</td></tr>';
+    tbody.innerHTML = '<tr class="empty"><td colspan="7">沒有持股資料，按「編輯持股」新增</td></tr>';
     return;
   }
 
@@ -154,6 +154,7 @@ function renderRows() {
         <div class="sub-line dim">${share}</div>
         ${origValue}
       </td>
+      <td class="note-col"><div class="note" title="${esc(r[K.NOTE])}">${esc(r[K.NOTE])}</div></td>
     </tr>`;
   }).join('');
 }
