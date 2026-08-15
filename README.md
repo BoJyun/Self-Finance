@@ -30,6 +30,15 @@
 - 有錯的格子會標紅並寫明原因，**修好之前不會存檔，你改的東西也不會不見**
 - `Ctrl+S` 儲存、`Esc` 取消
 
+### 同一檔可以填好幾列
+
+分批買進、想分開追蹤各批績效的話，同一個代號可以填多列 —— 每一列各自保留自己的股數與均價，**不會被合併**。
+
+- 編輯時重複的列會標黃框提示「第 1/2 筆，會分開計算」（黃色 = 提醒，紅色才是錯誤）
+- 存檔前會跳確認框，避免你只是不小心打重複
+- 庫存表上會標 `1/2` `2/2`，讓你知道那不是畫面重複
+- 損益各列分開算，總計照樣加總；報價只會查一次，不會重複打 API
+
 儲存時會寫回 `持股.xlsx`（存檔前自動備份）。
 
 ⚠️ **存檔時請先關掉 Excel** —— 如果 `持股.xlsx` 正被 Excel 開著會存不進去。程式進入編輯模式時就會提醒你，存檔失敗也會明講原因，你改的內容不會遺失。
@@ -125,7 +134,8 @@ python app.py
 ```
 conda run -n FinanceEnv python tests\test_portfolio.py     # 損益計算，不需網路
 conda run -n FinanceEnv python tests\test_editing.py       # 寫回、設定、盤中判斷
+conda run -n FinanceEnv python tests\test_duplicates.py    # 重複代號的行為
 conda run -n FinanceEnv python tests\test_integration.py   # 完整流程，會真的打 API
 ```
 
-三個測試都用暫存目錄，不會動到你的 `持股.xlsx`。
+四個測試都用暫存目錄，不會動到你的 `持股.xlsx`。

@@ -122,12 +122,16 @@ function renderRows() {
     const share = (total && r['市值'] !== null) ? (r['市值'] / total * 100).toFixed(1) + '%' : '—';
     const origValue = (isUS && r['現價'] !== null)
       ? `<div class="orig">${money(r[K.SHARES] * r['現價'], 0)} USD</div>` : '';
+    // 同一代號有多筆時標出「第 n / 共 m 筆」，免得看起來像畫面重複
+    const dupMark = r['重複總數'] > 1
+      ? `<span class="dup-mark" title="這檔有 ${r['重複總數']} 筆，分開計算">`
+        + `${r['重複序號']}/${r['重複總數']}</span>` : '';
 
     return `<tr>
       <td>
         <div class="code-cell">${tag}
           <div>
-            <div class="name">${esc(r[K.NAME])}${flag}</div>
+            <div class="name">${esc(r[K.NAME])}${dupMark}${flag}</div>
             <div class="code">${esc(r[K.CODE])}</div>
           </div>
         </div>
@@ -294,6 +298,7 @@ function renderEdit() {
         inp.classList.remove('bad');
         const msg = inp.parentElement.querySelector('.cell-msg');
         if (msg) msg.remove();
+        if (inp.dataset.f === K.CODE) markDuplicates();
       });
       if (inp.dataset.f === K.CODE || inp.dataset.f === K.MARKET) {
         inp.addEventListener('change', () => doLookup(i));
@@ -308,8 +313,42 @@ function renderEdit() {
     });
   });
 
+  markDuplicates();
   // 已經有名稱的列，開啟時就把現價補上
   EDIT.rows.forEach((r, i) => { if (r[K.CODE]) doLookup(i); });
+}
+
+/* 代號重複是允許的，所以用黃色提示（可以存），不是紅框（不修就不能存） */
+function findDuplicates() {
+  const seen = {};
+  EDIT.rows.forEach((r, i) => {
+    const c = String(r[K.CODE] || '').trim();
+    if (c) (seen[c] = seen[c] || []).push(i);
+  });
+  return Object.fromEntries(Object.entries(seen).filter(([, v]) => v.length > 1));
+}
+
+function markDuplicates() {
+  const dups = findDuplicates();
+  document.querySelectorAll('#edit-tbody tr').forEach((tr) => {
+    const inp = tr.querySelector(`[data-f="${K.CODE}"]`);
+    inp.classList.remove('dup');
+    const old = tr.querySelector('.cell-note');
+    if (old) old.remove();
+  });
+
+  Object.entries(dups).forEach(([code, idxs]) => {
+    idxs.forEach((i, n) => {
+      const tr = document.querySelector(`#edit-tbody tr[data-i="${i}"]`);
+      if (!tr) return;
+      const inp = tr.querySelector(`[data-f="${K.CODE}"]`);
+      inp.classList.add('dup');
+      const d = document.createElement('div');
+      d.className = 'cell-note';
+      d.textContent = `第 ${n + 1}/${idxs.length} 筆，會分開計算`;
+      inp.parentElement.appendChild(d);
+    });
+  });
 }
 
 async function doLookup(i) {
@@ -350,7 +389,7 @@ async function cancelEdit() {
   exitEdit();
 }
 
-async function saveEdit() {
+async function saveEdit(confirmed = false) {
   const btn = el('btn-save');
   btn.disabled = true; btn.textContent = '儲存中…';
   const errBox = el('edit-error');
@@ -364,13 +403,21 @@ async function saveEdit() {
       String(r[K.CODE] || '').trim() || String(r[K.SHARES] || '').trim()
       || String(r[K.AVG] || '').trim());
 
-    const res = await window.pywebview.api.save_holdings(rows, EDIT.mtime);
+    const res = await window.pywebview.api.save_holdings(rows, EDIT.mtime, confirmed);
 
     if (res.ok) {
       EDIT.dirty = false;
       exitEdit();
-      toast(`已儲存 ${res.count} 檔到 持股.xlsx`);
+      const n = Object.keys(res.duplicates || {}).length;
+      toast(`已儲存 ${res.count} 檔到 持股.xlsx`
+        + (n ? `（其中 ${n} 個代號有重複，已分開列出）` : ''));
       refresh();
+      return;
+    }
+
+    // 代號重複：先跳提醒，使用者確認後才真的存
+    if (res.needs_confirm === 'duplicates') {
+      showDupConfirm(res.duplicates);
       return;
     }
 
@@ -398,6 +445,17 @@ async function saveEdit() {
     btn.disabled = false; btn.textContent = '儲存';
   }
 }
+
+function showDupConfirm(dups) {
+  // 後端回傳的已經是 1 起算的列號，不要再加 1
+  const lines = Object.entries(dups).map(([code, rowNos]) =>
+    `<div><span class="code">${esc(code)}</span> 出現 ${rowNos.length} 次`
+    + `（第 ${rowNos.join('、')} 列）</div>`);
+  el('dup-list').innerHTML = lines.join('');
+  el('dup-overlay').classList.remove('hidden');
+}
+
+function closeDupConfirm() { el('dup-overlay').classList.add('hidden'); }
 
 /* ══════════════ 設定 ══════════════ */
 function openSettings() {
@@ -486,7 +544,9 @@ window.addEventListener('pywebviewready', async () => {
   el('btn-edit').addEventListener('click', enterEdit);
   el('btn-settings').addEventListener('click', openSettings);
   el('btn-cancel').addEventListener('click', cancelEdit);
-  el('btn-save').addEventListener('click', saveEdit);
+  el('btn-save').addEventListener('click', () => saveEdit());
+  el('dup-cancel').addEventListener('click', closeDupConfirm);
+  el('dup-ok').addEventListener('click', () => { closeDupConfirm(); saveEdit(true); });
   el('btn-addrow').addEventListener('click', () => {
     EDIT.rows.push(blankRow());
     EDIT.dirty = true;
@@ -498,7 +558,8 @@ window.addEventListener('pywebviewready', async () => {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (!el('settings-overlay').classList.contains('hidden')) closeSettings();
+      if (!el('dup-overlay').classList.contains('hidden')) closeDupConfirm();
+      else if (!el('settings-overlay').classList.contains('hidden')) closeSettings();
       else if (isEditing()) cancelEdit();
     }
     if (isEditing() && e.ctrlKey && e.key.toLowerCase() === 's') { e.preventDefault(); saveEdit(); }

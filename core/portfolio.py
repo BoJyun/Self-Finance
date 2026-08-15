@@ -43,6 +43,9 @@ def build_rows(holdings: list[Holding], quotes: dict[str, Quote],
             "備註": h.note,
             "警告": q.error,
             "遞補價": q.stale,
+            # 同一代號有多筆時的序號，畫面用來顯示「①②」避免看起來像重複顯示
+            "重複序號": h.dup_index,
+            "重複總數": h.dup_total,
         }
 
         if price is None or (is_us and not conv):
@@ -88,8 +91,9 @@ def summarize(rows: list[dict], fx: FxRate) -> dict:
     tw_value = total("市值", lambda r: r["市場"] == C.MARKET_TW)
     us_value = total("市值", lambda r: r["市場"] == C.MARKET_US)
 
-    incomplete = [r["代號"] for r in rows if r.get("市值") is None]
-    no_prev = [r["代號"] for r in rows if r.get("市值") is not None and r.get("今日損益") is None]
+    incomplete = sorted({r["代號"] for r in rows if r.get("市值") is None})
+    no_prev = sorted({r["代號"] for r in rows
+                      if r.get("市值") is not None and r.get("今日損益") is None})
 
     return {
         "market_value": market_value,

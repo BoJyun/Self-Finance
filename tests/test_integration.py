@@ -74,7 +74,6 @@ print("=" * 78)
 cases = [
     ("缺少必要欄位", [["2882", "", "TW", 217, 44.66, ""]], ["代號", "名稱"], "缺少必要欄位"),
     ("股數不是數字", [["2882", "", "TW", "很多", 44.66, ""]], None, "不是有效的數字"),
-    ("代號重複", [["2882", "", "TW", 100, 40, ""], ["2882", "", "TW", 200, 50, ""]], None, "出現了兩次"),
     ("股數是 0", [["2882", "", "TW", 0, 44.66, ""]], None, "必須大於 0"),
     ("均價空白", [["2882", "", "TW", 217, None, ""]], None, "都要填"),
     ("市場填錯", [["2882", "", "火星", 217, 44.66, ""]], None, "請填 TW"),
@@ -86,6 +85,12 @@ for name, rows, header, expect in cases:
         ok(name, False, "應該要報錯但沒有")
     except HoldingsFileError as e:
         ok(name, expect in str(e), f'-> "{str(e).splitlines()[0][:52]}…"')
+
+print("\n  代號重複允許，只給警告（詳細測試在 test_duplicates.py）:")
+make_holdings([["2882", "", "TW", 100, 40, ""], ["2882", "", "TW", 200, 50, ""]])
+book = excel_io.read_holdings()
+ok("讀得回來且是兩列", len(book.holdings) == 2, f"{len(book.holdings)} 列")
+ok("有重複警告", any("重複" in w for w in book.warnings), str(book.warnings))
 
 print("\n  容錯（這些不該報錯）:")
 make_holdings([

@@ -135,14 +135,20 @@ cases = [
     ("股數是文字", [{C.COL_CODE: "2882", C.COL_SHARES: "abc", C.COL_AVGCOST: 10}], C.COL_SHARES, "大於 0"),
     ("股數是 0", [{C.COL_CODE: "2882", C.COL_SHARES: 0, C.COL_AVGCOST: 10}], C.COL_SHARES, "大於 0"),
     ("均價是負數", [{C.COL_CODE: "2882", C.COL_SHARES: 10, C.COL_AVGCOST: -5}], C.COL_AVGCOST, "0 或正數"),
-    ("代號重複", [{C.COL_CODE: "2882", C.COL_SHARES: 10, C.COL_AVGCOST: 10},
-                {C.COL_CODE: "2882", C.COL_SHARES: 20, C.COL_AVGCOST: 20}], C.COL_CODE, "重複"),
 ]
 for name, bad, field, expect in cases:
     res = api.save_holdings(bad)
     err = (res.get("errors") or [{}])[0]
     ok(name, not res.get("ok") and err.get("field") == field and expect in err.get("msg", ""),
        f'-> {err.get("msg", res.get("error"))}')
+
+print("\n  代號重複不是錯誤，而是先要求確認（詳細測試在 test_duplicates.py）:")
+dup = [{C.COL_CODE: "2882", C.COL_SHARES: 10, C.COL_AVGCOST: 10},
+       {C.COL_CODE: "2882", C.COL_SHARES: 20, C.COL_AVGCOST: 20}]
+res = api.save_holdings(dup)
+ok("回 needs_confirm 而不是 errors",
+   res.get("needs_confirm") == "duplicates" and not res.get("errors"), str(res)[:80])
+ok("確認後存得進去", api.save_holdings(dup, confirmed=True).get("ok"))
 
 print("\n  容錯與自動判斷:")
 res = api.save_holdings([

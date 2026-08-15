@@ -40,6 +40,8 @@ class Holding:
     avg_cost: float
     note: str = ""
     row: int = 0         # 在 Excel 裡的列號，出錯時好指給使用者看
+    dup_index: int = 0   # 同一代號有多筆時的序號（1、2、3…）；0 表示沒有重複
+    dup_total: int = 0   # 同一代號總共有幾筆
 
 
 @dataclass
@@ -47,6 +49,7 @@ class HoldingsFile:
     holdings: list[Holding] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     mtime: float = 0.0           # 讀取當下的檔案時間，寫回前用來偵測外部改動
+    duplicates: dict = field(default_factory=dict)   # {代號: [列號, ...]}
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -113,10 +116,16 @@ def read_holdings(path: Path | None = None) -> HoldingsFile:
         )
 
     try:
-        return HoldingsFile(holdings=_parse_holdings_sheet(wb, path),
-                            mtime=path.stat().st_mtime)
+        holdings = _parse_holdings_sheet(wb, path)
     finally:
         wb.close()
+
+    book = HoldingsFile(holdings=holdings, mtime=path.stat().st_mtime)
+    book.duplicates = mark_duplicates(holdings)
+    note = duplicate_warning(book.duplicates)
+    if note:
+        book.warnings.append(note)
+    return book
 
 
 def _parse_holdings_sheet(wb, path: Path) -> list[Holding]:
@@ -148,7 +157,6 @@ def _parse_holdings_sheet(wb, path: Path) -> list[Holding]:
         return row[i] if i is not None and i < len(row) else None
 
     holdings: list[Holding] = []
-    seen: dict[str, int] = {}
     for n, row in enumerate(rows[1:], start=2):
         if row is None or all(c is None or str(c).strip() == "" for c in row):
             continue                                        # 跳過空白列
@@ -171,13 +179,6 @@ def _parse_holdings_sheet(wb, path: Path) -> list[Holding]:
         if avg < 0:
             raise HoldingsFileError(f"第 {n} 列（{code}）的均價是 {avg:g}，不能是負數。")
 
-        if code in seen:
-            raise HoldingsFileError(
-                f"代號「{code}」出現了兩次（第 {seen[code]} 列和第 {n} 列）。\n"
-                f"請把它們合併成一列，股數相加、均價填加權平均。"
-            )
-        seen[code] = n
-
         holdings.append(Holding(
             code=code,
             name=str(cell(row, C.COL_NAME) or "").strip(),
@@ -188,6 +189,37 @@ def _parse_holdings_sheet(wb, path: Path) -> list[Holding]:
             row=n,
         ))
     return holdings
+
+
+def mark_duplicates(holdings: list[Holding]) -> dict[str, list[int]]:
+    """標記重複的代號。
+
+    重複是允許的 —— 例如分批買進想分開追蹤績效。
+    每一筆各自保留自己的股數與均價，不會被合併，
+    只是標上序號讓畫面能顯示「①②」，並回傳重複清單供提醒使用。
+    回傳 {代號: [Excel 列號, ...]}，只含出現兩次以上的。
+    """
+    groups: dict[str, list[Holding]] = {}
+    for h in holdings:
+        groups.setdefault(h.code, []).append(h)
+
+    dups: dict[str, list[int]] = {}
+    for code, items in groups.items():
+        if len(items) < 2:
+            continue
+        for i, h in enumerate(items, start=1):
+            h.dup_index, h.dup_total = i, len(items)
+        dups[code] = [h.row for h in items]
+    return dups
+
+
+def duplicate_warning(dups: dict[str, list[int]]) -> str | None:
+    """把重複清單寫成一句給使用者看的話。"""
+    if not dups:
+        return None
+    parts = [f"{code}（{len(rows)} 筆）" for code, rows in dups.items()]
+    return (f"以下代號有重複：{'、'.join(parts)}。"
+            f"重複的持股會分開列出、分開計算損益，總計仍會加總。")
 
 
 # ══════════════════════════════════════════════════════════════════

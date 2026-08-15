@@ -82,8 +82,10 @@ class Api:
             return {"error": "持股清單是空的。\n按「編輯持股」新增你的第一筆持股。",
                     "error_kind": "empty", "settings": conf}
 
-        tw = [h.code for h in book.holdings if h.market == C.MARKET_TW]
-        us = [h.code for h in book.holdings if h.market == C.MARKET_US]
+        # 代號可能重複（分批買進分開追蹤），查價要去重，否則同一檔會被打好幾次。
+        # 報價是用代號查的，重複的列自然共用同一份報價。
+        tw = list(dict.fromkeys(h.code for h in book.holdings if h.market == C.MARKET_TW))
+        us = list(dict.fromkeys(h.code for h in book.holdings if h.market == C.MARKET_US))
 
         try:
             quotes, fx = self.service.fetch(tw, us, conf.get(C.SET_MANUAL_FX))
@@ -145,6 +147,7 @@ class Api:
             "excel_open": excel_io.excel_lock_holder(C.HOLDINGS_XLSX) is not None,
         }
 
+
     def lookup(self, code: str, market: str = "") -> dict:
         """編輯時輸入代號，即時查名稱與現價，讓使用者確認沒打錯。"""
         code = (code or "").strip()
@@ -167,21 +170,21 @@ class Api:
         return {"ok": True, "market": mkt, "name": q.name, "price": q.price,
                 "currency": q.currency, "source": q.source}
 
-    def save_holdings(self, rows, expect_mtime=None) -> dict:
-        """把編輯結果寫回 持股.xlsx。驗證不過就不寫，並指出是哪一列。"""
+    def save_holdings(self, rows, expect_mtime=None, confirmed=False) -> dict:
+        """把編輯結果寫回 持股.xlsx。驗證不過就不寫，並指出是哪一列。
+
+        代號重複是允許的（分批買進想分開追蹤），但第一次呼叫會先回
+        needs_confirm 讓前端跳提醒；使用者確認後帶 confirmed=True 再存。
+        """
         cleaned, errors = [], []
-        seen: dict[str, int] = {}
+        seen: dict[str, list[int]] = {}
 
         for i, r in enumerate(rows or [], start=1):
             code = str(r.get(C.COL_CODE, "") or "").strip()
             if not code:
                 errors.append({"index": i - 1, "field": C.COL_CODE, "msg": "代號不能空白"})
                 continue
-            if code in seen:
-                errors.append({"index": i - 1, "field": C.COL_CODE,
-                               "msg": f"代號重複，第 {seen[code]} 列已經有了"})
-                continue
-            seen[code] = i
+            seen.setdefault(code, []).append(i)
 
             try:
                 shares = float(str(r.get(C.COL_SHARES, "")).replace(",", "").strip())
@@ -215,6 +218,11 @@ class Api:
         if errors:
             return {"ok": False, "errors": errors}
 
+        # 重複代號：先提醒，不擋。使用者按了「確定儲存」才真的寫。
+        dups = {c: rowsn for c, rowsn in seen.items() if len(rowsn) > 1}
+        if dups and not confirmed:
+            return {"ok": False, "needs_confirm": "duplicates", "duplicates": dups}
+
         try:
             info = excel_io.write_holdings(cleaned, expect_mtime=expect_mtime)
         except HoldingsFileError as e:
@@ -223,7 +231,7 @@ class Api:
             traceback.print_exc()
             return {"ok": False, "error": f"存檔失敗：\n{e}"}
 
-        return {"ok": True, **info}
+        return {"ok": True, "duplicates": dups, **info}
 
     # ── 設定 ──────────────────────────────────────────────────────
     def get_settings(self) -> dict:

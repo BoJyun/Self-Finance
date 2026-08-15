@@ -159,6 +159,27 @@
   </div>
 </div>
 
+<!-- ════════ 重複代號確認 ════════ -->
+<div id="dup-overlay" class="overlay hidden">
+  <div class="dialog narrow">
+    <div class="dialog-head">
+      <div class="dialog-title">有代號重複</div>
+    </div>
+    <div class="field">
+      <div id="dup-list" class="dup-list"></div>
+      <div class="field-note">
+        重複的持股會<b>分開列出、分開計算損益</b>，總計仍會加總。<br>
+        這在分批買進、想分開追蹤績效時很有用。<br><br>
+        如果只是不小心打重複了，請按「回去修改」。
+      </div>
+    </div>
+    <div class="dialog-actions">
+      <button id="dup-cancel" class="btn">回去修改</button>
+      <button id="dup-ok" class="btn primary">確定儲存</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 
 <script src="app.js"></script>

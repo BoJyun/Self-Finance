@@ -186,6 +186,12 @@ tbody tr.empty td { text-align: center; color: var(--text-faint); padding: 36px 
   background: var(--warn-bg); color: var(--warn-text);
   border: 1px solid var(--warn-line); margin-left: 5px;
 }
+/* 同一代號的第 n 筆，讓使用者知道這不是畫面重複顯示 */
+.dup-mark {
+  display: inline-block; font-size: 10px; margin-left: 6px;
+  color: var(--accent); border: 1px solid #5A4A22; background: #241E14;
+  border-radius: 3px; padding: 1px 5px; font-variant-numeric: tabular-nums;
+}
 
 .footnote {
   margin-top: 12px; padding: 11px 13px;
@@ -273,6 +279,25 @@ select.cell-input { padding: 7px 6px; }
 .dialog-foot {
   padding: 12px 18px; border-top: 1px solid var(--line);
   font-size: 11px; color: var(--text-faint);
+}
+
+.dialog.narrow { width: 420px; }
+.dialog-actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 14px 18px; border-top: 1px solid var(--line);
+}
+
+.dup-list {
+  font-size: 13px; line-height: 1.9; margin-bottom: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.dup-list .code { color: var(--accent); font-weight: 600; font-size: 13px; }
+
+/* 編輯器裡的重複提示：黃色，代表「可以存，只是提醒你」，
+   跟紅色的驗證錯誤（不修就不能存）區隔開 */
+.cell-input.dup { border-color: #7A5A22; background: #241E14; }
+.cell-note {
+  font-size: 11px; color: var(--warn-text); margin-top: 3px; padding-left: 2px;
 }
 
 .field { padding: 16px 18px; border-bottom: 1px solid var(--line); }
